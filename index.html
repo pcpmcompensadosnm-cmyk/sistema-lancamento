@@ -2372,6 +2372,8 @@
                         this.loadDashboard();
                         this.populateFiltrosConsulta();
                         this.populateProdutosDataList();
+                        App.ui.updateConnectionStatus('connected'); // Adicione esta linha
+
                     } catch (error) {
                         console.error('Erro ao carregar dados:', error);
                     }
@@ -4769,6 +4771,8 @@
                 App.utils.$('#dataRefPrensa').value = App.logic.prensa.state.dataRef;
                 this.ui.updateConnectionStatus('disconnected');
                 this.setupEventListeners();
+                this.logic.loadAllData(); // Adicione esta linha
+
                 console.log('Sistema inicializado com sucesso!');
             },
             // SUBSTITUA TODA ESTA FUNÇÃO NO SEU JAVASCRIPT
