@@ -2327,38 +2327,38 @@
                 }
             },
             logic: {
-               async loadAllData() {
-    try {
-        App.ui.showLoading(true);
-        
-        // Carrega dados básicos primeiro
-        await Promise.all([
-            this.loadProdutos().catch(error => console.error('Erro ao carregar produtos:', error)),
-            this.loadTurnos().catch(error => console.error('Erro ao carregar turnos:', error)),
-            this.loadFamilias().catch(error => console.error('Erro ao carregar famílias:', error)),
-            this.loadSetores().catch(error => console.error('Erro ao carregar setores:', error))
-        ]);
+                async loadAllData() {
+                    try {
+                        App.ui.showLoading(true);
 
-        // Carrega dados que dependem dos básicos
-        await Promise.all([
-            this.loadProducao().catch(error => console.error('Erro ao carregar produção:', error)),
-            this.loadDescarte().catch(error => console.error('Erro ao carregar descarte:', error)),
-            this.loadTiposDescarte().catch(error => console.error('Erro ao carregar tipos de descarte:', error))
-        ]);
+                        // Carrega dados básicos primeiro
+                        await Promise.all([
+                            this.loadProdutos().catch(error => console.error('Erro ao carregar produtos:', error)),
+                            this.loadTurnos().catch(error => console.error('Erro ao carregar turnos:', error)),
+                            this.loadFamilias().catch(error => console.error('Erro ao carregar famílias:', error)),
+                            this.loadSetores().catch(error => console.error('Erro ao carregar setores:', error))
+                        ]);
 
-        // Inicializa componentes que dependem dos dados
-        this.loadDashboard();
-        this.populateFiltrosConsulta();
-        this.populateProdutosDataList();
-        App.ui.updateConnectionStatus('connected');
+                        // Carrega dados que dependem dos básicos
+                        await Promise.all([
+                            this.loadProducao().catch(error => console.error('Erro ao carregar produção:', error)),
+                            this.loadDescarte().catch(error => console.error('Erro ao carregar descarte:', error)),
+                            this.loadTiposDescarte().catch(error => console.error('Erro ao carregar tipos de descarte:', error))
+                        ]);
 
-    } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        App.ui.showNotification('Erro ao carregar alguns dados do sistema', 'error');
-    } finally {
-        App.ui.showLoading(false);
-    }
-},
+                        // Inicializa componentes que dependem dos dados
+                        this.loadDashboard();
+                        this.populateFiltrosConsulta();
+                        this.populateProdutosDataList();
+                        App.ui.updateConnectionStatus('connected');
+
+                    } catch (error) {
+                        console.error('Erro ao carregar dados:', error);
+                        App.ui.showNotification('Erro ao carregar alguns dados do sistema', 'error');
+                    } finally {
+                        App.ui.showLoading(false);
+                    }
+                },
                 // NOVO CÓDIGO PARA loadProdutos
                 async loadProdutos() {
                     // Usa o Supabase para buscar todos os produtos da tabela 'Dim_Produtos'
@@ -7809,7 +7809,32 @@
         });
 
         // =========== FIM: SISTEMA ESTOQUE TAB ===========
+        if (!window.App) window.App = {};
+        if (!App.logic) App.logic = {};
 
+        App.logic.loadDescarte = async function () {
+            try {
+                console.log("🔄 Carregando dados de descarte...");
+
+                // Exemplo de chamada à API (ajuste conforme seu backend ou Supabase)
+                const { data, error } = await supabaseClient
+                    .from('Fact_Descarte')
+                    .select('*')
+                    .order('Data', { ascending: false });
+
+                if (error) throw error;
+
+                // Salva no cache global
+                App.state.cache.descarte = data || [];
+                console.log(`✅ ${App.state.cache.descarte.length} registros de descarte carregados.`);
+
+            } catch (err) {
+                console.error("Erro ao carregar descartes:", err);
+                App.ui.showNotification("Falha ao carregar dados de descarte.", "error");
+            } finally {
+                App.ui.showLoading(false);
+            }
+        };
 
 
 
