@@ -2657,6 +2657,11 @@
                     try {
                         const codigo = App.utils.getValue('#codigoEsqInput') || App.utils.getValue('#produtoCodigoEsq');
                         const produto = App.state.cache.produtos.find(p => p.Codigo == codigo);
+                        // ---- INÍCIO DO CÓDIGO DE INVESTIGAÇÃO ----
+console.log("Código digitado:", codigo);
+console.log("Lista de produtos carregada na memória:", App.state.cache.produtos);
+console.log("Resultado da busca pelo produto:", produto);
+// ---- FIM DO CÓDIGO DE INVESTIGAÇÃO ----
                         if (!produto) {
                             return App.ui.showNotification('Produto não encontrado!', 'error');
                         }
