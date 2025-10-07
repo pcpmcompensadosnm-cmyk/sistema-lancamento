@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+<html lang="pt-BR">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -902,7 +903,7 @@
                 </div>
             </div>
             <div style="text-align: center;">
-                <button class="btn btn-success" id="btnConectar">Conectar ao Servidor</button>
+                
                 <button class="btn btn-info" onclick="testarConexao()">Testar Conexão</button>
             </div>
         </div>
@@ -3616,20 +3617,7 @@
                         }
                     }
                 },
-                async conectarBanco() {
-                    const host = App.utils.getValue('#dbHost') || 'localhost';
-                    const port = App.utils.getValue('#dbPort') || '3001';
-                    App.state.API_BASE_URL = `http://${host}:${port}`;
-                    App.ui.updateConnectionStatus('connecting');
-                    try {
-                        const data = await App.utils.apiCall('/test-connection');
-                        App.ui.updateConnectionStatus('connected');
-                        App.ui.showNotification(`Conectado com sucesso: ${data.message || 'Conexão estabelecida'}`);
-                        await this.loadAllData();
-                    } catch (error) {
-                        App.ui.updateConnectionStatus('disconnected');
-                    }
-                },
+                
                 initConsulta() {
                     const tipoConsulta = App.utils.$('#tipoConsulta');
                     if (tipoConsulta) {
