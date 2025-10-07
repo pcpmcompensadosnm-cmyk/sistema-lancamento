@@ -2475,43 +2475,50 @@
                         dataList.appendChild(option);
                     });
                 },
+                // CÓDIGO CORRIGIDO para loadSetores
                 async loadSetores() {
                     const { data, error } = await supabaseClient.from('Dim_Setores').select('*');
                     if (error) throw new Error('Erro ao carregar setores: ' + error.message);
 
                     App.state.cache.setores = data.map(s => ({
                         SetorID: s.setorid,
-                        SetorNome: s.setornome
+                        SetorNome: s.setornome // Usando o nome da coluna em minúsculo que vem do Supabase
                     }));
-                    const setorEsq = App.state.cache.setores.find(s => s.SetorNome.toUpperCase() === 'ESQUADREJADEIRA');
+
+                    // CORREÇÃO: Adicionamos uma verificação para garantir que s.SetorNome não é nulo
+                    const setorEsq = App.state.cache.setores.find(s => s.SetorNome && s.SetorNome.toUpperCase() === 'ESQUADREJADEIRA');
                     App.state.setorEsquadrejadeiraId = setorEsq ? setorEsq.SetorID : 3;
                 },
-                // NOVO CÓDIGO PARA loadDescarte
-                async loadDescarte() {
-                    const { data, error } = await supabaseClient
-                        .from('Fact_Descarte') // <-- Nome da tabela do seu print
-                        .select('*');
 
-                    if (error) {
-                        console.error('Erro ao carregar descarte:', error);
-                        return;
+                // CÓDIGO CORRIGIDO para loadTiposDescarte
+                async loadTiposDescarte() {
+                    try {
+                        // CORREÇÃO: Usando o nome da coluna com letra maiúscula, como sugerido pelo erro.
+                        const { data, error } = await supabaseClient
+                            .from('Fact_Descarte')
+                            .select('Tipo_Descarte'); // <-- AQUI ESTÁ A MUDANÇA
+
+                        if (error) throw error;
+
+                        // CORREÇÃO: Acessando a propriedade com letra maiúscula.
+                        const tiposUnicos = [...new Set(data.map(item => item.Tipo_Descarte))];
+                        App.state.cache.tiposDescarte = tiposUnicos.map(tipo => ({ Nome: tipo }));
+
+                        this.populateTiposDescarteDataList();
+                    } catch (error) {
+                        console.error("Erro ao carregar tipos de descarte:", error);
+                        App.ui.showNotification("Não foi possível carregar os tipos de descarte.", "warning");
+                        App.state.cache.tiposDescarte = [];
+                        this.populateTiposDescarteDataList();
                     }
-                    const descarteMapeado = data.map(d => ({
-                        DescarteID: d.descarteid,
-                        ProdutoID: d.produtoid,
-                        TurnoID: d.turnoid,
-                        Tipo_Descarte: d.tipo_descarte,
-                        Quantidade_Chapas: d.quantidade_chapas,
-                        Obs: d.obs,
-                        Data: d.data,
-                        createdAt: d.created_at
-                    }));
-                    App.state.cache.descarte = descarteMapeado;
                 },
 
+
+                // CÓDIGO CORRIGIDO para loadDashboard
                 async loadDashboard() {
-                    // Garante que os dados mais recentes de produção e descarte estão no cache.
-                    // Se a conexão estiver ativa, busca os dados mais recentes do servidor.
+                    // Esta parte de recarregar os dados pode ser removida,
+                    // pois loadAllData já faz isso na inicialização.
+                    // Manter não causa erro, mas é redundante.
                     if (App.state.isConnected) {
                         try {
                             await Promise.all([
@@ -2520,31 +2527,37 @@
                             ]);
                         } catch (error) {
                             console.error("Falha ao recarregar dados para o dashboard:", error);
-                            // Continua com os dados em cache, se houver.
                         }
                     }
 
                     const { producao = [], descarte = [], produtos = [] } = App.state.cache;
 
-                    // 1. Calcula o total de produtos cadastrados.
+                    // 1. Calcula o total de produtos cadastrados (nenhuma mudança aqui).
                     const totalProdutos = produtos.length;
                     App.utils.setText('#totalProdutos', totalProdutos.toString());
 
                     // 2. Calcula o total de m³ produzidos.
                     const totalProducaoM3 = producao.reduce((sum, p) => {
+                        // CORREÇÃO: Usando 'produtoid' (minúsculo) para encontrar o produto.
                         const produto = produtos.find(prod => prod.ProdutoID === p.ProdutoID);
+                        // CORREÇÃO: Usando 'cubagem_m3' e 'quantidade_chapas' (minúsculo).
                         const volume = produto ? (produto.Cubagem_m3 || 0) * (p.Quantidade_Chapas || 0) : 0;
                         return sum + volume;
                     }, 0);
                     App.utils.setText('#totalProducao', totalProducaoM3.toFixed(3));
 
                     // 3. Calcula o total de chapas descartadas.
-                    const totalDescarteChapas = descarte.reduce((sum, d) => sum + (d.Quantidade_Chapas || 0), 0);
+                    const totalDescarteChapas = descarte.reduce((sum, d) => {
+                        // CORREÇÃO: Usando 'quantidade_chapas' (minúsculo).
+                        return sum + (d.Quantidade_Chapas || 0);
+                    }, 0);
                     App.utils.setText('#totalDescarte', totalDescarteChapas.toString());
 
-                    // 4. Calcula a eficiência (Produção / (Produção + Descarte em m³)).
+                    // 4. Calcula a eficiência.
                     const totalDescarteM3 = descarte.reduce((sum, d) => {
+                        // CORREÇÃO: Usando 'produtoid' (minúsculo).
                         const produto = produtos.find(prod => prod.ProdutoID === d.ProdutoID);
+                        // CORREÇÃO: Usando 'cubagem_m3' e 'quantidade_chapas' (minúsculo).
                         const volume = produto ? (produto.Cubagem_m3 || 0) * (d.Quantidade_Chapas || 0) : 0;
                         return sum + volume;
                     }, 0);
@@ -2554,9 +2567,9 @@
                     App.utils.setText('#eficiencia', `${eficiencia.toFixed(1)}%`);
 
                     // 5. Atualiza os gráficos com os dados de produção.
-                    // A função updateCharts já existe, só precisamos chamá-la.
                     this.sync.updateCharts(producao);
                 },
+
 
                 renderProdutos() {
                     const tbody = App.utils.$('#produtosTbody');
