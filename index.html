@@ -5527,7 +5527,10 @@
         };
 
         // Funções globais
-        function testarConexao() { App.logic.conectarBanco(); }
+        function testarConexao() {
+            App.ui.showNotification('A conexão agora é automática. Se houver falha, a aplicação tentará reconectar.', 'info');
+        }
+
         function abrirModalProduto() {
             App.state.editingProduct = null;
             App.utils.setText('#tituloModalProduto', 'Novo Produto');
