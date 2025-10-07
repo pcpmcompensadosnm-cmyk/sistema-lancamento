@@ -16,6 +16,19 @@
 
         // Inicializa o cliente do Supabase
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        (async () => {
+  console.log("🔍 Testando leitura do Supabase...");
+  const { data, error } = await supabaseClient
+    .from('Produtos')
+    .select('*')
+    .limit(5);
+
+  if (error) {
+    console.error("❌ Erro ao ler dados do Supabase:", error);
+  } else {
+    console.log("✅ Dados lidos do Supabase:", data);
+  }
+})();
     </script>
     <style>
         :root {
