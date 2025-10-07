@@ -2327,29 +2327,38 @@
                 }
             },
             logic: {
-                async loadAllData() {
-                    try {
-                        // CÓDIGO CORRIGIDO E FINAL PARA O PROMISE.ALL
-                        await Promise.all([
-                            this.loadProdutos(),
-                            this.loadTurnos(),
-                            this.loadFamilias(),
-                            this.loadSetores(),
-                            this.loadProducao(),
-                            this.loadDescarte(),
-                            this.loadTiposDescarte()
-                        ]);
+               async loadAllData() {
+    try {
+        App.ui.showLoading(true);
+        
+        // Carrega dados básicos primeiro
+        await Promise.all([
+            this.loadProdutos().catch(error => console.error('Erro ao carregar produtos:', error)),
+            this.loadTurnos().catch(error => console.error('Erro ao carregar turnos:', error)),
+            this.loadFamilias().catch(error => console.error('Erro ao carregar famílias:', error)),
+            this.loadSetores().catch(error => console.error('Erro ao carregar setores:', error))
+        ]);
 
+        // Carrega dados que dependem dos básicos
+        await Promise.all([
+            this.loadProducao().catch(error => console.error('Erro ao carregar produção:', error)),
+            this.loadDescarte().catch(error => console.error('Erro ao carregar descarte:', error)),
+            this.loadTiposDescarte().catch(error => console.error('Erro ao carregar tipos de descarte:', error))
+        ]);
 
-                        this.loadDashboard();
-                        this.populateFiltrosConsulta();
-                        this.populateProdutosDataList();
-                        App.ui.updateConnectionStatus('connected'); // Adicione esta linha
+        // Inicializa componentes que dependem dos dados
+        this.loadDashboard();
+        this.populateFiltrosConsulta();
+        this.populateProdutosDataList();
+        App.ui.updateConnectionStatus('connected');
 
-                    } catch (error) {
-                        console.error('Erro ao carregar dados:', error);
-                    }
-                },
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        App.ui.showNotification('Erro ao carregar alguns dados do sistema', 'error');
+    } finally {
+        App.ui.showLoading(false);
+    }
+},
                 // NOVO CÓDIGO PARA loadProdutos
                 async loadProdutos() {
                     // Usa o Supabase para buscar todos os produtos da tabela 'Dim_Produtos'
