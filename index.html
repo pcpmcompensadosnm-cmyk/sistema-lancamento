@@ -7715,24 +7715,43 @@ if (!App.state.cache) App.state.cache = {};
 
 if (!App.logic) App.logic = {};
 
+
 App.logic.loadProdutos = async function() {
   try {
     console.log("🔄 Carregando dados de produtos...");
+
     const { data, error } = await supabaseClient
       .from('Dim_Produtos')
       .select('*');
 
     if (error) throw error;
 
-    // Garante que o cache exista
-    if (!App.state.cache) App.state.cache = {};
-    App.state.cache.produtos = data;
+    // Armazena no cache global
+    App.state.cache.produtos = data || [];
+    console.log(`✅ ${App.state.cache.produtos.length} produtos armazenados no cache.`);
 
-    console.log(`✅ ${data.length} produtos carregados e armazenados no cache.`);
+    // Atualiza o log visual (ou tabela, se existir)
+    const tbody = document.querySelector('#produtosTbody');
+    if (tbody && data.length > 0) {
+      tbody.innerHTML = data.map(p => `
+        <tr>
+          <td>${p.Codigo || '-'}</td>
+          <td>${p.Descricao || '-'}</td>
+          <td>${p.Familia || '-'}</td>
+        </tr>
+      `).join('');
+      console.log("✅ Tabela de produtos atualizada!");
+    } else {
+      console.warn("⚠️ Nenhum elemento de tabela encontrado para renderizar produtos.");
+    }
+
   } catch (err) {
     console.error("Erro ao carregar produtos:", err);
+    App.ui.showNotification("Falha ao carregar produtos.", "error");
   }
 };
+
+
 
 
     </script>
