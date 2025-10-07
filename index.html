@@ -2340,356 +2340,182 @@
                 }
             },
             logic: {
-                async loadAllData() {
-                    try {
-                        App.ui.showLoading(true);
+           async loadAllData() {
+        try {
+            App.ui.showLoading(true);
+            App.ui.updateConnectionStatus('connecting');
 
-                        // Carrega dados básicos primeiro
-                        await Promise.all([
-                            this.loadProdutos().catch(error => console.error('Erro ao carregar produtos:', error)),
-                            this.loadTurnos().catch(error => console.error('Erro ao carregar turnos:', error)),
-                            this.loadFamilias().catch(error => console.error('Erro ao carregar famílias:', error)),
-                            this.loadSetores().catch(error => console.error('Erro ao carregar setores:', error))
-                        ]);
+            // Executa todas as buscas de dados em paralelo
+            await Promise.all([
+                this.loadProdutos(),
+                this.loadTurnos(),
+                this.loadFamilias(),
+                this.loadSetores(),
+                this.loadProducao(),
+                this.loadDescarte(),
+                this.loadTiposDescarte()
+            ]);
 
-                        // Carrega dados que dependem dos básicos
-                        await Promise.all([
-                            this.loadProducao().catch(error => console.error('Erro ao carregar produção:', error)),
-                            this.loadDescarte().catch(error => console.error('Erro ao carregar descarte:', error)),
-                            this.loadTiposDescarte().catch(error => console.error('Erro ao carregar tipos de descarte:', error))
-                        ]);
+            // DEPOIS que tudo foi carregado, atualiza a interface
+            this.renderProdutos();
+            this.renderTurnos();
+            this.loadDashboard();
+            this.populateFiltrosConsulta();
+            this.populateProdutosDataList();
 
-                        // Inicializa componentes que dependem dos dados
-                        this.loadDashboard();
-                        this.populateFiltrosConsulta();
-                        this.populateProdutosDataList();
-                        App.ui.updateConnectionStatus('connected');
+            App.ui.updateConnectionStatus('connected');
+            App.ui.showNotification('Sistema online e dados carregados!', 'success');
 
-                    } catch (error) {
-                        console.error('Erro ao carregar dados:', error);
-                        App.ui.showNotification('Erro ao carregar alguns dados do sistema', 'error');
-                    } finally {
-                        App.ui.showLoading(false);
-                    }
-                },
-                // NOVO CÓDIGO PARA loadProdutos
-                async loadProdutos() {
-                    // Usa o Supabase para buscar todos os produtos da tabela 'Dim_Produtos'
-                    const { data, error } = await supabaseClient
-                        .from('Dim_Produtos')
-                        .select('*');
+        } catch (error) {
+            console.error('Erro fatal ao carregar dados:', error);
+            App.ui.showNotification('Falha crítica ao carregar dados. Verifique o console.', 'error');
+            App.ui.updateConnectionStatus('disconnected');
+        } finally {
+            App.ui.showLoading(false);
+        }
+    },
 
-                    if (error) {
-                        console.error('Erro ao buscar produtos:', error);
-                        App.ui.showNotification('Erro ao carregar produtos do banco de dados.', 'error');
-                        return; // Para a execução se houver erro
-                    }
+    // 2. FUNÇÕES QUE BUSCAM DADOS DO SUPABASE E MAPEIAM
+    async loadProdutos() {
+        const { data, error } = await supabaseClient.from('Dim_Produtos').select('*').limit(3000); // Aumentado o limite
+        if (error) throw new Error('Erro ao buscar produtos: ' + error.message);
 
-                    // O Supabase retorna os nomes das colunas em minúsculo.
-                    // Precisamos converter para o formato que o resto do código espera (ex: 'Codigo' em vez de 'codigo').
-                    const produtosMapeados = data.map(p => ({
-                        ProdutoID: p.produtoid,
-                        Codigo: p.codigo,
-                        Descricao: p.descricao,
-                        Comprimento_m: p.comprimento_m,
-                        Largura_m: p.largura_m,
-                        Bitola_m: p.bitola_m,
-                        Cubagem_m3: p.cubagem_m3,
-                        FamiliaID: p.familiaid,
-                        Ativo: p.ativo
-                    }));
+        const produtosMapeados = data.map(p => ({
+            ProdutoID: p.produtoid, Codigo: p.codigo, Descricao: p.descricao,
+            Comprimento_m: p.comprimento_m, Largura_m: p.largura_m, Bitola_m: p.bitola_m,
+            Cubagem_m3: p.cubagem_m3, FamiliaID: p.familiaid, Ativo: p.ativo
+        }));
+        App.state.cache.produtos = produtosMapeados;
+        App.state.produtos.master = produtosMapeados;
+        console.log(`✅ ${data.length} produtos carregados.`);
+    },
 
-                    App.state.produtos.master = produtosMapeados;
-                    App.state.cache.produtos = produtosMapeados;
-                    this.renderProdutos();
-                },
+    async loadProducao() {
+        const { data, error } = await supabaseClient.from('Fact_Producao').select('*').limit(3000);
+        if (error) throw new Error('Erro ao carregar produção: ' + error.message);
+        App.state.cache.producao = data.map(p => ({
+            ProducaoID: p.producaoid, ProdutoID: p.produtoid, TurnoID: p.turnoid,
+            SetorID: p.setorid, Quantidade_Chapas: p.quantidade_chapas,
+            Observacoes: p.observacoes, Data: p.data, createdAt: p.created_at
+        }));
+        console.log(`✅ ${data.length} registros de produção carregados.`);
+    },
 
-                normalizeProducaoData(producaoArray) {
-                    return (producaoArray || []).map(p => ({
-                        ProducaoID: p.ProducaoID || p.producao_id,
-                        ProdutoID: p.ProdutoID || p.produto_id,
-                        TurnoID: p.TurnoID || p.turno_id,
-                        SetorID: p.SetorID || p.setor_id,
-                        Quantidade_Chapas: p.Quantidade_Chapas || p.quantidade_chapas,
-                        Observacoes: p.Observacoes || p.observacoes || p.Obs || p.obs,
-                        Data: p.Data || p.data,
-                        createdAt: p.createdAt || p.created_at,
-                        updatedAt: p.updatedAt || p.updated_at
-                    }));
-                },
-                // NOVO CÓDIGO PARA loadProducao
-                async loadProducao() {
-                    const { data, error } = await supabaseClient
-                        .from('Fact_Producao') // <-- Verifique se o nome da tabela está correto
-                        .select('*');
+    async loadDescarte() {
+        const { data, error } = await supabaseClient.from('Fact_Descarte').select('*').limit(3000);
+        if (error) throw new Error('Erro ao carregar descarte: ' + error.message);
+        App.state.cache.descarte = data.map(d => ({
+            DescarteID: d.descarteid, ProdutoID: d.produtoid, TurnoID: d.turnoid,
+            Tipo_Descarte: d.Tipo_Descarte, Quantidade_Chapas: d.quantidade_chapas,
+            Obs: d.obs, Data: d.data, createdAt: d.created_at
+        }));
+        console.log(`✅ ${data.length} registros de descarte carregados.`);
+    },
 
-                    if (error) {
-                        console.error('Erro ao carregar produção:', error);
-                        App.ui.showNotification('Erro ao carregar dados de produção.', 'error');
-                        return;
-                    }
-                    // Mapeia os nomes das colunas para o formato que o código espera
-                    const producaoMapeada = data.map(p => ({
-                        ProducaoID: p.producaoid,
-                        ProdutoID: p.produtoid,
-                        TurnoID: p.turnoid,
-                        SetorID: p.setorid,
-                        Quantidade_Chapas: p.quantidade_chapas,
-                        Observacoes: p.observacoes,
-                        Data: p.data,
-                        createdAt: p.created_at
-                    }));
-                    App.state.cache.producao = producaoMapeada;
-                },
+    async loadTurnos() {
+        const { data, error } = await supabaseClient.from('Dim_Turnos').select('*');
+        if (error) throw new Error('Erro ao carregar turnos: ' + error.message);
+        App.state.cache.turnos = data.map(t => ({ TurnoID: t.turnoid, TurnoNome: t.turnonome, Status: t.status }));
+    },
 
-                async loadTurnos() {
-                    const { data, error } = await supabaseClient.from('Dim_Turnos').select('*');
-                    if (error) throw new Error('Erro ao carregar turnos: ' + error.message);
+    async loadFamilias() {
+        const { data, error } = await supabaseClient.from('Dim_Familias').select('*');
+        if (error) throw new Error('Erro ao carregar famílias: ' + error.message);
+        App.state.cache.familias = data.map(f => ({ FamiliaID: f.familiaid, FamiliaNome: f.familianome }));
+    },
 
-                    // Mapeia os nomes das colunas para o formato esperado
-                    App.state.cache.turnos = data.map(t => ({
-                        TurnoID: t.turnoid,
-                        TurnoNome: t.turnonome,
-                        Status: t.status
-                    }));
-                    this.renderTurnos();
-                },
-                async loadFamilias() {
-                    const { data, error } = await supabaseClient.from('Dim_Familias').select('*');
-                    if (error) throw new Error('Erro ao carregar famílias: ' + error.message);
+    async loadSetores() {
+        const { data, error } = await supabaseClient.from('Dim_Setores').select('*');
+        if (error) throw new Error('Erro ao carregar setores: ' + error.message);
+        App.state.cache.setores = data.map(s => ({ SetorID: s.setorid, SetorNome: s.setornome }));
+        const setorEsq = App.state.cache.setores.find(s => s.SetorNome && s.SetorNome.toUpperCase() === 'ESQUADREJADEIRA');
+        App.state.setorEsquadrejadeiraId = setorEsq ? setorEsq.SetorID : 3;
+    },
 
-                    App.state.cache.familias = data.map(f => ({
-                        FamiliaID: f.familiaid,
-                        FamiliaNome: f.familianome
-                    }));
-                    App.ui.populateSelect('modalFamiliaID', App.state.cache.familias, 'FamiliaID', 'FamiliaNome');
-                },
-                // NOVO CÓDIGO PARA loadTiposDescarte
-                async loadTiposDescarte() {
-                    try {
-                        // Esta tabela não existe no seu print. Vamos buscar os tipos da própria tabela de descarte.
-                        const { data, error } = await supabaseClient
-                            .from('Fact_Descarte')
-                            .select('tipo_descarte');
+    async loadTiposDescarte() {
+        const { data, error } = await supabaseClient.from('Fact_Descarte').select('Tipo_Descarte');
+        if (error) throw error;
+        const tiposUnicos = [...new Set(data.map(item => item.Tipo_Descarte).filter(Boolean))];
+        App.state.cache.tiposDescarte = tiposUnicos.map(tipo => ({ Nome: tipo }));
+    },
 
-                        if (error) throw error;
+    // 3. FUNÇÕES QUE ATUALIZAM A INTERFACE (RENDERIZAM)
+    loadDashboard() {
+        const { producao = [], descarte = [], produtos = [] } = App.state.cache;
+        App.utils.setText('#totalProdutos', produtos.length.toString());
+        const totalProducaoM3 = producao.reduce((s, p) => {
+            const prod = produtos.find(pr => pr.ProdutoID === p.ProdutoID);
+            return s + (prod ? (prod.Cubagem_m3 || 0) * (p.Quantidade_Chapas || 0) : 0);
+        }, 0);
+        App.utils.setText('#totalProducao', totalProducaoM3.toFixed(3));
+        const totalDescarteChapas = descarte.reduce((s, d) => s + (d.Quantidade_Chapas || 0), 0);
+        App.utils.setText('#totalDescarte', totalDescarteChapas.toString());
+        const totalDescarteM3 = descarte.reduce((s, d) => {
+            const prod = produtos.find(pr => pr.ProdutoID === d.ProdutoID);
+            return s + (prod ? (prod.Cubagem_m3 || 0) * (d.Quantidade_Chapas || 0) : 0);
+        }, 0);
+        const eficiencia = (totalProducaoM3 + totalDescarteM3) > 0 ? (totalProducaoM3 / (totalProducaoM3 + totalDescarteM3)) * 100 : 0;
+        App.utils.setText('#eficiencia', `${eficiencia.toFixed(1)}%`);
+        if (this.sync && typeof this.sync.updateCharts === 'function') {
+            this.sync.updateCharts(producao);
+        } else {
+            console.log("sync.updateCharts não encontrado para atualizar gráficos.");
+        }
+    },
 
-                        // Pega todos os tipos, remove duplicados e formata como o código espera
-                        const tiposUnicos = [...new Set(data.map(item => item.tipo_descarte))];
-                        App.state.cache.tiposDescarte = tiposUnicos.map(tipo => ({ Nome: tipo }));
+    renderProdutos() {
+        const tbody = App.utils.$('#produtosTbody');
+        if (!tbody) return;
+        const { master } = App.state.produtos;
+        tbody.innerHTML = master.length === 0 ? `<tr><td colspan="8" style="text-align:center;">Nenhum produto.</td></tr>` : master.map(p => {
+            const familiaNome = this.getFamiliaNome(p.FamiliaID);
+            return `
+                <tr>
+                    <td>${p.Codigo}</td><td>${p.Descricao}</td>
+                    <td>${(p.Comprimento_m || 0).toFixed(3)} m</td><td>${(p.Largura_m || 0).toFixed(3)} m</td>
+                    <td>${(p.Bitola_m || 0).toFixed(3)} m</td><td>${familiaNome}</td>
+                    <td><strong>${(p.Cubagem_m3 || 0).toFixed(6)} m³</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="App.editarProduto(${p.ProdutoID})">Editar</button>
+                        <button class="btn btn-sm btn-danger" onclick="App.excluirProduto(${p.ProdutoID})">Excluir</button>
+                    </td>
+                </tr>`;
+        }).join('');
+    },
 
-                        this.populateTiposDescarteDataList();
-                    } catch (error) {
-                        console.error("Erro ao carregar tipos de descarte:", error);
-                        App.ui.showNotification("Não foi possível carregar os tipos de descarte.", "warning");
-                        App.state.cache.tiposDescarte = [];
-                        this.populateTiposDescarteDataList();
-                    }
-                },
+    renderTurnos() {
+        const tbody = App.utils.$('#turnosTbody');
+        if (!tbody) return;
+        const turnos = App.state.cache.turnos || [];
+        tbody.innerHTML = turnos.length === 0 ? `<tr><td colspan="4" style="text-align:center;">Nenhum turno.</td></tr>` : turnos.map(t => `
+            <tr>
+                <td>${t.TurnoID}</td><td>${t.TurnoNome}</td>
+                <td><span class="badge ${t.Status === 'Ativo' ? 'bg-success' : 'bg-secondary'}">${t.Status || 'Inativo'}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="App.editarTurno(${t.TurnoID})">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="App.excluirTurno(${t.TurnoID})">Excluir</button>
+                </td>
+            </tr>`).join('');
+    },
 
-                populateTiposDescarteDataList() {
-                    const dataList = App.utils.$('#tiposDescarteDataList');
-                    if (!dataList) return;
-                    dataList.innerHTML = '';
-                    const tipos = new Set(App.state.cache.tiposDescarte.map(tipo => tipo.Nome));
-                    const defaultTipos = ["FALHA PRENSA", "FALHA MIOLO", "ESTOURADA", "PRÉ CURA", "CAPA VAZADA", "LAMINA DESBITOLADA", "SERRA", "DESCOLADA", "CAPA DOBRADA", "FALHA CORTE", "ERRO CAMADA", "EMPENO", "QUEBRADA", "FALHA CAPA", "EMPILHADEIRA", "CAPA CURTA", "FALHA LIXADEIRA", "DEFEITO DE CAPA", "FALHA FILME", "RECORTE", "MOTIVO NÃO ESPECIFICADO", "FALHA CABECEIRA", "TORTA"];
-                    defaultTipos.forEach(defaultTipo => tipos.add(defaultTipo));
-                    tipos.forEach(nome => {
-                        const option = document.createElement('option');
-                        option.value = nome;
-                        dataList.appendChild(option);
-                    });
-                },
-                // CÓDIGO CORRIGIDO para loadSetores
-                async loadSetores() {
-                    const { data, error } = await supabaseClient.from('Dim_Setores').select('*');
-                    if (error) throw new Error('Erro ao carregar setores: ' + error.message);
+    populateFiltrosConsulta() {
+        App.ui.populateSelect('filtroFamilia', App.state.cache.familias, 'FamiliaID', 'FamiliaNome');
+    },
 
-                    App.state.cache.setores = data.map(s => ({
-                        SetorID: s.setorid,
-                        SetorNome: s.setornome // Usando o nome da coluna em minúsculo que vem do Supabase
-                    }));
+    populateProdutosDataList() {
+        const dataList = App.utils.$('#produtosDescarteDataList');
+        if (!dataList) return;
+        dataList.innerHTML = '';
+        (App.state.cache.produtos || []).forEach(p => {
+            const o1 = document.createElement('option'); o1.value = p.Codigo; o1.textContent = p.Descricao; dataList.appendChild(o1);
+            const o2 = document.createElement('option'); o2.value = p.Descricao; o2.textContent = `Código: ${p.Codigo}`; dataList.appendChild(o2);
+        });
+    },
 
-                    // CORREÇÃO: Adicionamos uma verificação para garantir que s.SetorNome não é nulo
-                    const setorEsq = App.state.cache.setores.find(s => s.SetorNome && s.SetorNome.toUpperCase() === 'ESQUADREJADEIRA');
-                    App.state.setorEsquadrejadeiraId = setorEsq ? setorEsq.SetorID : 3;
-                },
-
-                // CÓDIGO CORRIGIDO para loadTiposDescarte
-                async loadTiposDescarte() {
-                    try {
-                        // CORREÇÃO: Usando o nome da coluna com letra maiúscula, como sugerido pelo erro.
-                        const { data, error } = await supabaseClient
-                            .from('Fact_Descarte')
-                            .select('Tipo_Descarte'); // <-- AQUI ESTÁ A MUDANÇA
-
-                        if (error) throw error;
-
-                        // CORREÇÃO: Acessando a propriedade com letra maiúscula.
-                        const tiposUnicos = [...new Set(data.map(item => item.Tipo_Descarte))];
-                        App.state.cache.tiposDescarte = tiposUnicos.map(tipo => ({ Nome: tipo }));
-
-                        this.populateTiposDescarteDataList();
-                    } catch (error) {
-                        console.error("Erro ao carregar tipos de descarte:", error);
-                        App.ui.showNotification("Não foi possível carregar os tipos de descarte.", "warning");
-                        App.state.cache.tiposDescarte = [];
-                        this.populateTiposDescarteDataList();
-                    }
-                },
-
-
-                // CÓDIGO CORRIGIDO para loadDashboard
-                async loadDashboard() {
-                    // Esta parte de recarregar os dados pode ser removida,
-                    // pois loadAllData já faz isso na inicialização.
-                    // Manter não causa erro, mas é redundante.
-                    if (App.state.isConnected) {
-                        try {
-                            await Promise.all([
-                                this.loadProducao(),
-                                this.loadDescarte()
-                            ]);
-                        } catch (error) {
-                            console.error("Falha ao recarregar dados para o dashboard:", error);
-                        }
-                    }
-
-                    const { producao = [], descarte = [], produtos = [] } = App.state.cache;
-
-                    // 1. Calcula o total de produtos cadastrados (nenhuma mudança aqui).
-                    const totalProdutos = produtos.length;
-                    App.utils.setText('#totalProdutos', totalProdutos.toString());
-
-                    // 2. Calcula o total de m³ produzidos.
-                    const totalProducaoM3 = producao.reduce((sum, p) => {
-                        // CORREÇÃO: Usando 'produtoid' (minúsculo) para encontrar o produto.
-                        const produto = produtos.find(prod => prod.ProdutoID === p.ProdutoID);
-                        // CORREÇÃO: Usando 'cubagem_m3' e 'quantidade_chapas' (minúsculo).
-                        const volume = produto ? (produto.Cubagem_m3 || 0) * (p.Quantidade_Chapas || 0) : 0;
-                        return sum + volume;
-                    }, 0);
-                    App.utils.setText('#totalProducao', totalProducaoM3.toFixed(3));
-
-                    // 3. Calcula o total de chapas descartadas.
-                    const totalDescarteChapas = descarte.reduce((sum, d) => {
-                        // CORREÇÃO: Usando 'quantidade_chapas' (minúsculo).
-                        return sum + (d.Quantidade_Chapas || 0);
-                    }, 0);
-                    App.utils.setText('#totalDescarte', totalDescarteChapas.toString());
-
-                    // 4. Calcula a eficiência.
-                    const totalDescarteM3 = descarte.reduce((sum, d) => {
-                        // CORREÇÃO: Usando 'produtoid' (minúsculo).
-                        const produto = produtos.find(prod => prod.ProdutoID === d.ProdutoID);
-                        // CORREÇÃO: Usando 'cubagem_m3' e 'quantidade_chapas' (minúsculo).
-                        const volume = produto ? (produto.Cubagem_m3 || 0) * (d.Quantidade_Chapas || 0) : 0;
-                        return sum + volume;
-                    }, 0);
-
-                    const totalGeralM3 = totalProducaoM3 + totalDescarteM3;
-                    const eficiencia = totalGeralM3 > 0 ? (totalProducaoM3 / totalGeralM3) * 100 : 0;
-                    App.utils.setText('#eficiencia', `${eficiencia.toFixed(1)}%`);
-
-                    // 5. Atualiza os gráficos com os dados de produção.
-                    this.sync.updateCharts(producao);
-                },
-
-
-                renderProdutos() {
-                    const tbody = App.utils.$('#produtosTbody');
-                    if (!tbody) return;
-
-                    // 1. Pega os dados mestre e aplica o filtro de busca
-                    const { master, filterText, sort } = App.state.produtos;
-                    let view = master;
-
-                    if (filterText) {
-                        view = master.filter(p => {
-                            const normalizedTerm = App.utils.normalizeText(filterText);
-                            return App.utils.normalizeText(p.Descricao).includes(normalizedTerm) ||
-                                App.utils.normalizeText(p.Codigo).includes(normalizedTerm);
-                        });
-                    }
-
-                    // 2. Aplica a ordenação (sort)
-                    view.sort((a, b) => {
-                        let valA = a[sort.key];
-                        let valB = b[sort.key];
-
-                        // Tratamento para diferentes tipos de dados
-                        if (typeof valA === 'string') {
-                            valA = App.utils.normalizeText(valA);
-                            valB = App.utils.normalizeText(valB);
-                        }
-
-                        if (valA < valB) return sort.dir === 'asc' ? -1 : 1;
-                        if (valA > valB) return sort.dir === 'asc' ? 1 : -1;
-                        return 0;
-                    });
-
-                    // 3. Renderiza o HTML da tabela
-                    if (view.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhum produto encontrado.</td></tr>`;
-                    } else {
-                        tbody.innerHTML = view.map(p => {
-                            const familiaNome = App.logic.getFamiliaNome(p.FamiliaID);
-                            return `
-                                <tr id="produto-row-${p.ProdutoID}">
-                                    <td>${p.Codigo}</td>
-                                    <td>${p.Descricao}</td>
-                                    <td>${(p.Comprimento_m || 0).toFixed(3)} m</td>
-                                    <td>${(p.Largura_m || 0).toFixed(3)} m</td>
-                                    <td>${(p.Bitola_m || 0).toFixed(3)} m</td>
-                                    <td>${familiaNome}</td>
-                                    <td><strong>${(p.Cubagem_m3 || 0).toFixed(6)} m³</strong></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning" onclick="editarProduto(${p.ProdutoID})">Editar</button>
-                                        <button class="btn btn-sm btn-danger" onclick="excluirProduto(${p.ProdutoID})">Excluir</button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
-                },
-                populateProdutosDataList() {
-                    // Encontra o <datalist> na aba de Descarte
-                    const dataList = App.utils.$('#produtosDescarteDataList');
-                    if (!dataList) return; // Se não encontrar o elemento, encerra a função
-
-                    // Limpa quaisquer opções antigas que possam existir
-                    dataList.innerHTML = '';
-
-                    // Pega a lista de produtos do cache do sistema
-                    const produtos = App.state.cache.produtos || [];
-
-                    // Cria um <option> para cada produto e o adiciona ao <datalist>
-                    produtos.forEach(produto => {
-                        // Adiciona uma opção baseada no Código do produto
-                        const optionCodigo = document.createElement('option');
-                        optionCodigo.value = produto.Codigo;
-                        optionCodigo.textContent = `${produto.Descricao}`; // Texto que pode aparecer em alguns navegadores
-                        dataList.appendChild(optionCodigo);
-
-                        // Adiciona uma opção também pela Descrição, para que o usuário possa buscar pelo nome
-                        const optionDescricao = document.createElement('option');
-                        optionDescricao.value = produto.Descricao;
-                        optionDescricao.textContent = `Código: ${produto.Codigo}`;
-                        dataList.appendChild(optionDescricao);
-                    });
-                },
-
-                async loadConsultaData() {
-                    this.initConsulta();
-                    this.populateFiltrosConsulta();
-                },
-                renderTurnos() {
-                    // ... (código original da função)
-                },
-                getFamiliaNome(familiaID) {
-                    const familia = App.state.cache.familias.find(f => f.FamiliaID === familiaID);
-                    return familia ? familia.FamiliaNome : 'N/A';
-                },
+    getFamiliaNome(familiaID) {
+        const f = App.state.cache.familias.find(fam => fam.FamiliaID === familiaID);
+        return f ? f.FamiliaNome : 'N/A';
+    },
                 initProducaoTab() {
                     App.utils.$('#dataProducao').value = App.state.dataReferencia;
                     App.ui.populateSelect('turnoDetalhado', App.state.cache.turnos, 'TurnoID', 'TurnoNome');
