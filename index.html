@@ -7858,6 +7858,28 @@
             // ⚙️ Aqui você pode colocar a atualização dos gráficos, se quiser:
             // ex: App.ui.updateDashboardCharts(App.state.cache.producao);
         };
+        if (!window.App) window.App = {};
+if (!App.logic) App.logic = {};
+
+App.logic.loadProdutos = async function() {
+  try {
+    console.log("🔄 Carregando dados de produtos...");
+    const { data, error } = await supabaseClient
+      .from('Dim_Produtos')  // nome correto no Supabase
+      .select('*')
+      .order('Nome', { ascending: true }); // ajuste o campo se for diferente
+
+    if (error) throw error;
+
+    // Salva no cache global, se existir
+    App.state.cache.produtos = data || [];
+
+    console.log(`✅ ${App.state.cache.produtos.length} produtos carregados.`);
+  } catch (err) {
+    console.error("Erro ao carregar produtos:", err);
+    App.ui.showNotification("Falha ao carregar produtos.", "error");
+  }
+};
 
 
 
