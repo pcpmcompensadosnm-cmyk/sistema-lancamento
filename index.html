@@ -4769,15 +4769,11 @@
                 App.utils.$('#dataRefPrensa').value = App.logic.prensa.state.dataRef;
                 this.ui.updateConnectionStatus('disconnected');
                 this.setupEventListeners();
-                setTimeout(() => this.logic.conectarBanco(), 1000);
                 console.log('Sistema inicializado com sucesso!');
             },
             // SUBSTITUA TODA ESTA FUNÇÃO NO SEU JAVASCRIPT
             setupEventListeners() {
-                const btnConectar = App.utils.$('#btnConectar');
-                if (btnConectar) {
-                    btnConectar.addEventListener('click', () => App.logic.conectarBanco());
-                }
+
                 document.body.addEventListener('click', (e) => {
                     if (e.target && e.target.id === 'btnCopiarResumoDescarte') {
                         if (App.logic.resumoDescarte && typeof App.logic.resumoDescarte.onCopiarResumoDescarte === 'function') {
