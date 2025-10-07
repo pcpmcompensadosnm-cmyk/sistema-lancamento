@@ -17,18 +17,18 @@
         // Inicializa o cliente do Supabase
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         (async () => {
-  console.log("🔍 Testando leitura do Supabase...");
-  const { data, error } = await supabaseClient
-    .from('Produtos')
-    .select('*')
-    .limit(5);
+            console.log("🔍 Testando leitura do Supabase...");
+            const { data, error } = await supabaseClient
+                .from('Produtos')
+                .select('*')
+                .limit(5);
 
-  if (error) {
-    console.error("❌ Erro ao ler dados do Supabase:", error);
-  } else {
-    console.log("✅ Dados lidos do Supabase:", data);
-  }
-})();
+            if (error) {
+                console.error("❌ Erro ao ler dados do Supabase:", error);
+            } else {
+                console.log("✅ Dados lidos do Supabase:", data);
+            }
+        })();
     </script>
     <style>
         :root {
@@ -7848,7 +7848,16 @@
                 App.ui.showLoading(false);
             }
         };
+        if (!window.App) window.App = {};
+        if (!App.logic) App.logic = {};
+        if (!App.logic.sync) App.logic.sync = {};
 
+        // Função “vazia” ou funcional, para corrigir o erro
+        App.logic.sync.updateCharts = function () {
+            console.log("updateCharts() chamada — ainda não implementada.");
+            // ⚙️ Aqui você pode colocar a atualização dos gráficos, se quiser:
+            // ex: App.ui.updateDashboardCharts(App.state.cache.producao);
+        };
 
 
 
