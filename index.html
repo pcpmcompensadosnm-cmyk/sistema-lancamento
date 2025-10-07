@@ -11,24 +11,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        const SUPABASE_URL = 'https://lhjipwizdefpkwndbhfq.supabase.co';      // <<====== COPIE E COLE SUA URL DO SUPABASE AQUI
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxoamlwd2l6ZGVmcGt3bmRiaGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjUyMzksImV4cCI6MjA3NTM0MTIzOX0.maycHg5S6xf2AynM3ECFVEcMxMIY6VzlQAwbnbFrvWg'; // <<====== COPIE E COLE SUA CHAVE 'anon public' AQUI
+       // 1. Definição das constantes com os valores corretos
+    const SUPABASE_URL = 'https://lhjipwizdefpkwndbhfq.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxoamlwd2l6ZGVmcGt3bmRiaGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjUyMzksImV4cCI6MjA3NTM0MTIzOX0.maycHg5S6xf2AynM3ECFVEcMxMIY6VzlQAwbnbFrvWg';
 
-        // Inicializa o cliente do Supabase
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        (async () => {
-            console.log("🔍 Testando leitura do Supabase...");
-            const { data, error } = await supabaseClient
-                .from('Dim_Produtos')
-                .select('*')
-                .limit(5);
+    // 2. Criação do cliente Supabase
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY );
 
-            if (error) {
-                console.error("❌ Erro ao ler dados do Supabase:", error);
-            } else {
-                console.log("✅ Dados lidos do Supabase:", data);
-            }
-        })();
+    // 3. (Opcional, mas recomendado) Teste de conexão no console
+    (async () => {
+        console.log("🔍 Testando conexão com o Supabase...");
+        const { data, error } = await supabaseClient
+            .from('Dim_Produtos') // Tenta ler da sua tabela de produtos
+            .select('produtoid')    // Pega apenas a coluna de ID
+            .limit(1);              // Pega apenas 1 registro para ser rápido
+
+        if (error) {
+            console.error("❌ FALHA NA CONEXÃO COM O SUPABASE:", error.message);
+            alert("ERRO: Não foi possível conectar ao banco de dados. Verifique o console (F12) para mais detalhes.");
+        } else {
+            console.log("✅ Conexão com o Supabase bem-sucedida!");
+        }
+    })();
     </script>
     <style>
         :root {
