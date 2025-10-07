@@ -3877,78 +3877,94 @@ console.log("Resultado da busca pelo produto:", produto);
                     App.ui.showNotification("Criação de turnos não implementada no servidor", 'warning');
                     App.ui.toggleModal('modalTurno', false);
                 },
-               async registrarProducao() {
-                    App.ui.showLoading(true); // Mostra o indicador de "carregando"
-                    try {
-                        // Mantém toda a sua lógica para pegar os dados do formulário
-                        const codigo = App.utils.getValue('#codigoInput') || App.utils.getValue('#produtoCodigo');
-                        const produto = App.state.cache.produtos.find(p => p.Codigo == codigo);
+               // ==================================================================
+// ==== VERSÃO FINAL (CORRIGIDA) DA FUNÇÃO registrarProducao ====
+// ==================================================================
+async registrarProducao() {
+    App.ui.showLoading(true);
+    try {
+        const codigoDigitado = App.utils.getValue('#codigoInput') || App.utils.getValue('#produtoCodigo');
 
-                        // Mantém todas as suas validações
-                        if (!produto) {
-                            throw new Error('Produto não encontrado!');
-                        }
-                        if (!produto.Cubagem_m3 || produto.Cubagem_m3 <= 0) {
-                            throw new Error('Produto sem dimensões. Não é possível calcular m³.');
-                        }
-                        const observacaoParaCopiar = App.utils.getValue('#obsProducao').trim();
-                        if (!observacaoParaCopiar) {
-                            throw new Error('O campo Observação é obrigatório para este lançamento.');
-                        }
-                        const setorGeral = App.state.cache.setores.find(s => s.SetorNome.toUpperCase() === 'PRODUÇÃO GERAL');
+        // ---- CORREÇÃO 1 AQUI ----
+        // Procurando por 'p.codigo' (minúsculo) em vez de 'p.Codigo'
+        const produto = App.state.cache.produtos.find(p => p.codigo == codigoDigitado);
 
-                        // Prepara o pacote de dados para o Supabase
-                        const lancamento = {
-                            Data: App.utils.getValue('#dataProducao'),
-                            TurnoID: parseInt(App.utils.getValue('#turnoDetalhado'), 10),
-                            SetorID: setorGeral ? setorGeral.SetorID : 1, // Usa a sua lógica para encontrar o setor
-                            ProdutoID: produto.ProdutoID,
-                            Quantidade_Chapas: parseInt(App.utils.getValue('#quantidade'), 10),
-                            Observacoes: observacaoParaCopiar
-                        };
+        // O código de debug que você adicionou pode ficar ou ser removido.
+        // Vou deixar comentado para referência.
+        // console.log("Código digitado:", codigoDigitado);
+        // console.log("Lista de produtos carregada na memória:", App.state.cache.produtos);
+        // console.log("Resultado da busca pelo produto:", produto);
 
-                        if (!lancamento.ProdutoID || !lancamento.Quantidade_Chapas || !lancamento.TurnoID || !lancamento.Data || lancamento.Quantidade_Chapas <= 0) {
-                            throw new Error('Por favor, preencha todos os campos obrigatórios corretamente.');
-                        }
+        if (!produto) {
+            throw new Error('Produto não encontrado na lista carregada do Supabase!');
+        }
+        
+        // ---- CORREÇÃO 2 AQUI ----
+        // Usando 'produto.cubagem_m3' (minúsculo) em vez de 'produto.Cubagem_m3'
+        if (!produto.cubagem_m3 || produto.cubagem_m3 <= 0) {
+            throw new Error('Produto sem dimensões (cubagem). Não é possível calcular m³.');
+        }
+        
+        const observacaoParaCopiar = App.utils.getValue('#obsProducao').trim();
+        if (!observacaoParaCopiar) {
+            throw new Error('O campo Observação é obrigatório para este lançamento.');
+        }
+        
+        // O Supabase geralmente converte 'SetorNome' para 'setornome' também.
+        // Para garantir, vamos procurar de forma insensível a maiúsculas/minúsculas.
+        const setorGeral = App.state.cache.setores.find(s => s.setornome && s.setornome.toUpperCase() === 'PRODUÇÃO GERAL');
 
-                        // Comando que envia os dados para o Supabase
-                        const { data, error } = await supabaseClient
-                            .from('Producao') // Nome da tabela no Supabase
-                            .insert([lancamento]); // Enviando o pacote de dados
+        const lancamento = {
+            Data: App.utils.getValue('#dataProducao'),
+            TurnoID: parseInt(App.utils.getValue('#turnoDetalhado'), 10),
+            SetorID: setorGeral ? setorGeral.setor_id : 1, // Usando setor_id (minúsculo)
+            
+            // ---- CORREÇÃO 3 AQUI ----
+            // Usando 'produto.produtoid' (minúsculo) em vez de 'produto.ProdutoID'
+            ProdutoID: produto.produtoid,
+            
+            Quantidade_Chapas: parseInt(App.utils.getValue('#quantidade'), 10),
+            Observacoes: observacaoParaCopiar
+        };
 
-                        if (error) {
-                            // Se o Supabase der um erro, ele será mostrado na tela
-                            throw new Error(`Erro do Supabase: ${error.message}`);
-                        }
+        if (!lancamento.ProdutoID || !lancamento.Quantidade_Chapas || !lancamento.TurnoID || !lancamento.Data || lancamento.Quantidade_Chapas <= 0) {
+            throw new Error('Por favor, preencha todos os campos obrigatórios corretamente.');
+        }
 
-                        App.ui.showNotification("Lançamento registrado com SUCESSO na nuvem!", 'success');
+        const { data, error } = await supabaseClient
+            .from('Producao')
+            .insert([lancamento]);
 
-                        // Mantém a sua lógica de copiar a observação para a área de transferência
-                        if (observacaoParaCopiar && navigator.clipboard) {
-                            try {
-                                await navigator.clipboard.writeText(observacaoParaCopiar);
-                                App.ui.showNotification('Observação copiada!');
-                            } catch (err) {
-                                console.error('Falha ao copiar a observação: ', err);
-                            }
-                        }
+        if (error) {
+            throw new Error(`Erro do Supabase: ${error.message}`);
+        }
 
-                        // Mantém a sua lógica de limpar o formulário e atualizar a tela
-                        this.resetFormProducaoParcial();
-                        App.utils.$('#obsProducao').value = '';
-                        this.renderProducaoDoDia();
-                        this.loadDashboard();
+        App.ui.showNotification("Lançamento salvo com SUCESSO na nuvem!", 'success');
 
-                    } catch (error) {
-                        // Se qualquer um dos "throw new Error" acontecer, ele será mostrado aqui
-                        console.error('Erro ao registrar produção:', error);
-                        App.ui.showNotification(error.message, 'error');
-                    } finally {
-                        // Garante que o "carregando" sempre vai sumir, mesmo se der erro
-                        App.ui.showLoading(false);
-                    }
-                },
-                // Fim da função produção Registrar produção na aba Produção 
+        if (observacaoParaCopiar && navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(observacaoParaCopiar);
+                App.ui.showNotification('Observação copiada!');
+            } catch (err) {
+                console.error('Falha ao copiar a observação: ', err);
+            }
+        }
+
+        this.resetFormProducaoParcial();
+        App.utils.$('#obsProducao').value = '';
+        this.renderProducaoDoDia();
+        this.loadDashboard();
+
+    } catch (error) {
+        console.error('Erro ao registrar produção:', error);
+        App.ui.showNotification(error.message, 'error');
+    } finally {
+        App.ui.showLoading(false);
+    }
+},
+// ==================================================================
+// ==== FIM DA FUNÇÃO CORRIGIDA ====
+// ==================================================================
                 resetFormProducaoParcial() {
                     App.utils.$('#codigoInput').value = '';
                     App.utils.$('#quantidade').value = '';
