@@ -7879,7 +7879,30 @@
                 App.ui.showNotification("Falha ao carregar produtos.", "error");
             }
         };
+if (!window.App) window.App = {};
+if (!App.state) App.state = {};
+if (!App.state.cache) App.state.cache = {};
 
+if (!App.logic) App.logic = {};
+
+App.logic.loadProdutos = async function() {
+  try {
+    console.log("🔄 Carregando dados de produtos...");
+    const { data, error } = await supabaseClient
+      .from('Dim_Produtos')
+      .select('*');
+
+    if (error) throw error;
+
+    // Garante que o cache exista
+    if (!App.state.cache) App.state.cache = {};
+    App.state.cache.produtos = data;
+
+    console.log(`✅ ${data.length} produtos carregados e armazenados no cache.`);
+  } catch (err) {
+    console.error("Erro ao carregar produtos:", err);
+  }
+};
 
 
     </script>
