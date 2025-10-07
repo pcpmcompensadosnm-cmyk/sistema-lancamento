@@ -2392,10 +2392,31 @@
                         updatedAt: p.updatedAt || p.updated_at
                     }));
                 },
+                // NOVO CÓDIGO PARA loadProducao
                 async loadProducao() {
-                    const producaoData = await App.utils.apiCall('/producao');
-                    App.state.cache.producao = this.normalizeProducaoData(producaoData);
+                    const { data, error } = await supabaseClient
+                        .from('Fact_Producao') // <-- Verifique se o nome da tabela está correto
+                        .select('*');
+
+                    if (error) {
+                        console.error('Erro ao carregar produção:', error);
+                        App.ui.showNotification('Erro ao carregar dados de produção.', 'error');
+                        return;
+                    }
+                    // Mapeia os nomes das colunas para o formato que o código espera
+                    const producaoMapeada = data.map(p => ({
+                        ProducaoID: p.producaoid,
+                        ProdutoID: p.produtoid,
+                        TurnoID: p.turnoid,
+                        SetorID: p.setorid,
+                        Quantidade_Chapas: p.quantidade_chapas,
+                        Observacoes: p.observacoes,
+                        Data: p.data,
+                        createdAt: p.created_at
+                    }));
+                    App.state.cache.producao = producaoMapeada;
                 },
+
                 async loadTurnos() {
                     const { data, error } = await supabaseClient.from('Dim_Turnos').select('*');
                     if (error) throw new Error('Erro ao carregar turnos: ' + error.message);
@@ -2418,9 +2439,20 @@
                     }));
                     App.ui.populateSelect('modalFamiliaID', App.state.cache.familias, 'FamiliaID', 'FamiliaNome');
                 },
+                // NOVO CÓDIGO PARA loadTiposDescarte
                 async loadTiposDescarte() {
                     try {
-                        App.state.cache.tiposDescarte = await App.utils.apiCall('/tipos-descarte');
+                        // Esta tabela não existe no seu print. Vamos buscar os tipos da própria tabela de descarte.
+                        const { data, error } = await supabaseClient
+                            .from('Fact_Descarte')
+                            .select('tipo_descarte');
+
+                        if (error) throw error;
+
+                        // Pega todos os tipos, remove duplicados e formata como o código espera
+                        const tiposUnicos = [...new Set(data.map(item => item.tipo_descarte))];
+                        App.state.cache.tiposDescarte = tiposUnicos.map(tipo => ({ Nome: tipo }));
+
                         this.populateTiposDescarteDataList();
                     } catch (error) {
                         console.error("Erro ao carregar tipos de descarte:", error);
@@ -2429,6 +2461,7 @@
                         this.populateTiposDescarteDataList();
                     }
                 },
+
                 populateTiposDescarteDataList() {
                     const dataList = App.utils.$('#tiposDescarteDataList');
                     if (!dataList) return;
@@ -2453,9 +2486,29 @@
                     const setorEsq = App.state.cache.setores.find(s => s.SetorNome.toUpperCase() === 'ESQUADREJADEIRA');
                     App.state.setorEsquadrejadeiraId = setorEsq ? setorEsq.SetorID : 3;
                 },
+                // NOVO CÓDIGO PARA loadDescarte
                 async loadDescarte() {
-                    App.state.cache.descarte = await App.utils.apiCall('/descarte');
+                    const { data, error } = await supabaseClient
+                        .from('Fact_Descarte') // <-- Nome da tabela do seu print
+                        .select('*');
+
+                    if (error) {
+                        console.error('Erro ao carregar descarte:', error);
+                        return;
+                    }
+                    const descarteMapeado = data.map(d => ({
+                        DescarteID: d.descarteid,
+                        ProdutoID: d.produtoid,
+                        TurnoID: d.turnoid,
+                        Tipo_Descarte: d.tipo_descarte,
+                        Quantidade_Chapas: d.quantidade_chapas,
+                        Obs: d.obs,
+                        Data: d.data,
+                        createdAt: d.created_at
+                    }));
+                    App.state.cache.descarte = descarteMapeado;
                 },
+
                 async loadDashboard() {
                     // Garante que os dados mais recentes de produção e descarte estão no cache.
                     // Se a conexão estiver ativa, busca os dados mais recentes do servidor.
