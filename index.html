@@ -2218,45 +2218,14 @@
                     }
                     return '—';
                 },
+                // NOVO CÓDIGO PARA apiCall
                 async apiCall(endpoint, options = {}) {
-                    App.ui.showLoading(true);
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    console.warn(`A função apiCall para "${endpoint}" está obsoleta e precisa ser migrada para uma chamada direta do Supabase.`);
+                    App.ui.showNotification('Função ainda não migrada para o novo sistema.', 'warning');
+                    // Retorna uma promessa que nunca resolve para evitar que o código que a chama quebre
+                    return new Promise(() => { });
+                }, // <--- Este é o final da função apiCall
 
-                    try {
-                        const response = await fetch(`${App.state.API_BASE_URL}${endpoint}`, {
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            signal: controller.signal,
-                            ...options
-                        });
-                        clearTimeout(timeoutId);
-
-                        if (!response.ok) {
-                            throw new Error(`Erro ${response.status}: ${response.statusText}`);
-                        }
-
-                        const contentType = response.headers.get("content-type");
-                        if (contentType && contentType.indexOf("application/json") !== -1) {
-                            return await response.json();
-                        } else {
-                            const textResponse = await response.text();
-                            console.warn("Resposta não-JSON do servidor:", textResponse);
-                            return { message: textResponse };
-                        }
-                    } catch (error) {
-                        console.error(`API call to ${endpoint} failed:`, error);
-                        const userMessage = error.name === 'AbortError'
-                            ? "Timeout: Servidor não respondeu em 10 segundos"
-                            : error.message;
-                        App.ui.showNotification(`Erro: ${userMessage}`, 'error');
-                        throw error;
-                    } finally {
-                        clearTimeout(timeoutId);
-                        App.ui.showLoading(false);
-                    }
-                },
                 $(selector, silent = false) {
                     const el = document.querySelector(selector);
                     if (!el && !silent) console.warn(`Elemento não encontrado: ${selector}`);
@@ -2378,12 +2347,38 @@
                         console.error('Erro ao carregar dados:', error);
                     }
                 },
+                // NOVO CÓDIGO PARA loadProdutos
                 async loadProdutos() {
-                    const produtosData = await App.utils.apiCall('/produtos');
-                    App.state.produtos.master = produtosData;
-                    App.state.cache.produtos = produtosData;
+                    // Usa o Supabase para buscar todos os produtos da tabela 'Dim_Produtos'
+                    const { data, error } = await supabaseClient
+                        .from('Dim_Produtos')
+                        .select('*');
+
+                    if (error) {
+                        console.error('Erro ao buscar produtos:', error);
+                        App.ui.showNotification('Erro ao carregar produtos do banco de dados.', 'error');
+                        return; // Para a execução se houver erro
+                    }
+
+                    // O Supabase retorna os nomes das colunas em minúsculo.
+                    // Precisamos converter para o formato que o resto do código espera (ex: 'Codigo' em vez de 'codigo').
+                    const produtosMapeados = data.map(p => ({
+                        ProdutoID: p.produtoid,
+                        Codigo: p.codigo,
+                        Descricao: p.descricao,
+                        Comprimento_m: p.comprimento_m,
+                        Largura_m: p.largura_m,
+                        Bitola_m: p.bitola_m,
+                        Cubagem_m3: p.cubagem_m3,
+                        FamiliaID: p.familiaid,
+                        Ativo: p.ativo
+                    }));
+
+                    App.state.produtos.master = produtosMapeados;
+                    App.state.cache.produtos = produtosMapeados;
                     this.renderProdutos();
                 },
+
                 normalizeProducaoData(producaoArray) {
                     return (producaoArray || []).map(p => ({
                         ProducaoID: p.ProducaoID || p.producao_id,
@@ -2402,11 +2397,25 @@
                     App.state.cache.producao = this.normalizeProducaoData(producaoData);
                 },
                 async loadTurnos() {
-                    App.state.cache.turnos = await App.utils.apiCall('/turnos');
+                    const { data, error } = await supabaseClient.from('Dim_Turnos').select('*');
+                    if (error) throw new Error('Erro ao carregar turnos: ' + error.message);
+
+                    // Mapeia os nomes das colunas para o formato esperado
+                    App.state.cache.turnos = data.map(t => ({
+                        TurnoID: t.turnoid,
+                        TurnoNome: t.turnonome,
+                        Status: t.status
+                    }));
                     this.renderTurnos();
                 },
                 async loadFamilias() {
-                    App.state.cache.familias = await App.utils.apiCall('/familias');
+                    const { data, error } = await supabaseClient.from('Dim_Familias').select('*');
+                    if (error) throw new Error('Erro ao carregar famílias: ' + error.message);
+
+                    App.state.cache.familias = data.map(f => ({
+                        FamiliaID: f.familiaid,
+                        FamiliaNome: f.familianome
+                    }));
                     App.ui.populateSelect('modalFamiliaID', App.state.cache.familias, 'FamiliaID', 'FamiliaNome');
                 },
                 async loadTiposDescarte() {
@@ -2434,9 +2443,15 @@
                     });
                 },
                 async loadSetores() {
-                    App.state.cache.setores = await App.utils.apiCall('/setores');
+                    const { data, error } = await supabaseClient.from('Dim_Setores').select('*');
+                    if (error) throw new Error('Erro ao carregar setores: ' + error.message);
+
+                    App.state.cache.setores = data.map(s => ({
+                        SetorID: s.setorid,
+                        SetorNome: s.setornome
+                    }));
                     const setorEsq = App.state.cache.setores.find(s => s.SetorNome.toUpperCase() === 'ESQUADREJADEIRA');
-                    App.state.setorEsquadrejadeiraId = setorEsq ? setorEsq.SetorID : 3; // Fallback para 3
+                    App.state.setorEsquadrejadeiraId = setorEsq ? setorEsq.SetorID : 3;
                 },
                 async loadDescarte() {
                     App.state.cache.descarte = await App.utils.apiCall('/descarte');
