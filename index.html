@@ -4,17 +4,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NM COMPENSADOS - Controle de Produção</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <script>
-      const SUPABASE_URL = 'https://lhjipwizdefpkwndbhfq.supabase.co';      // <<====== COPIE E COLE SUA URL DO SUPABASE AQUI
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxoamlwd2l6ZGVmcGt3bmRiaGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjUyMzksImV4cCI6MjA3NTM0MTIzOX0.maycHg5S6xf2AynM3ECFVEcMxMIY6VzlQAwbnbFrvWg'; // <<====== COPIE E COLE SUA CHAVE 'anon public' AQUI
-    
-      // Inicializa o cliente do Supabase
-      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SUPABASE_URL = 'https://lhjipwizdefpkwndbhfq.supabase.co';      // <<====== COPIE E COLE SUA URL DO SUPABASE AQUI
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxoamlwd2l6ZGVmcGt3bmRiaGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjUyMzksImV4cCI6MjA3NTM0MTIzOX0.maycHg5S6xf2AynM3ECFVEcMxMIY6VzlQAwbnbFrvWg'; // <<====== COPIE E COLE SUA CHAVE 'anon public' AQUI
+
+        // Inicializa o cliente do Supabase
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     </script>
     <style>
         :root {
@@ -903,7 +904,7 @@
                 </div>
             </div>
             <div style="text-align: center;">
-                
+
                 <button class="btn btn-info" onclick="testarConexao()">Testar Conexão</button>
             </div>
         </div>
@@ -2658,10 +2659,10 @@
                         const codigo = App.utils.getValue('#codigoEsqInput') || App.utils.getValue('#produtoCodigoEsq');
                         const produto = App.state.cache.produtos.find(p => p.Codigo == codigo);
                         // ---- INÍCIO DO CÓDIGO DE INVESTIGAÇÃO ----
-console.log("Código digitado:", codigo);
-console.log("Lista de produtos carregada na memória:", App.state.cache.produtos);
-console.log("Resultado da busca pelo produto:", produto);
-// ---- FIM DO CÓDIGO DE INVESTIGAÇÃO ----
+                        console.log("Código digitado:", codigo);
+                        console.log("Lista de produtos carregada na memória:", App.state.cache.produtos);
+                        console.log("Resultado da busca pelo produto:", produto);
+                        // ---- FIM DO CÓDIGO DE INVESTIGAÇÃO ----
                         if (!produto) {
                             return App.ui.showNotification('Produto não encontrado!', 'error');
                         }
@@ -3622,7 +3623,7 @@ console.log("Resultado da busca pelo produto:", produto);
                         }
                     }
                 },
-                
+
                 initConsulta() {
                     const tipoConsulta = App.utils.$('#tipoConsulta');
                     if (tipoConsulta) {
@@ -3877,94 +3878,94 @@ console.log("Resultado da busca pelo produto:", produto);
                     App.ui.showNotification("Criação de turnos não implementada no servidor", 'warning');
                     App.ui.toggleModal('modalTurno', false);
                 },
-               // ==================================================================
-// ==== VERSÃO FINAL (CORRIGIDA) DA FUNÇÃO registrarProducao ====
-// ==================================================================
-async registrarProducao() {
-    App.ui.showLoading(true);
-    try {
-        const codigoDigitado = App.utils.getValue('#codigoInput') || App.utils.getValue('#produtoCodigo');
+                // ==================================================================
+                // ==== VERSÃO FINAL (CORRIGIDA) DA FUNÇÃO registrarProducao ====
+                // ==================================================================
+                async registrarProducao() {
+                    App.ui.showLoading(true);
+                    try {
+                        const codigoDigitado = App.utils.getValue('#codigoInput') || App.utils.getValue('#produtoCodigo');
 
-        // ---- CORREÇÃO 1 AQUI ----
-        // Procurando por 'p.codigo' (minúsculo) em vez de 'p.Codigo'
-        const produto = App.state.cache.produtos.find(p => p.codigo == codigoDigitado);
+                        // ---- CORREÇÃO 1 AQUI ----
+                        // Procurando por 'p.codigo' (minúsculo) em vez de 'p.Codigo'
+                        const produto = App.state.cache.produtos.find(p => p.codigo == codigoDigitado);
 
-        // O código de debug que você adicionou pode ficar ou ser removido.
-        // Vou deixar comentado para referência.
-        // console.log("Código digitado:", codigoDigitado);
-        // console.log("Lista de produtos carregada na memória:", App.state.cache.produtos);
-        // console.log("Resultado da busca pelo produto:", produto);
+                        // O código de debug que você adicionou pode ficar ou ser removido.
+                        // Vou deixar comentado para referência.
+                        // console.log("Código digitado:", codigoDigitado);
+                        // console.log("Lista de produtos carregada na memória:", App.state.cache.produtos);
+                        // console.log("Resultado da busca pelo produto:", produto);
 
-        if (!produto) {
-            throw new Error('Produto não encontrado na lista carregada do Supabase!');
-        }
-        
-        // ---- CORREÇÃO 2 AQUI ----
-        // Usando 'produto.cubagem_m3' (minúsculo) em vez de 'produto.Cubagem_m3'
-        if (!produto.cubagem_m3 || produto.cubagem_m3 <= 0) {
-            throw new Error('Produto sem dimensões (cubagem). Não é possível calcular m³.');
-        }
-        
-        const observacaoParaCopiar = App.utils.getValue('#obsProducao').trim();
-        if (!observacaoParaCopiar) {
-            throw new Error('O campo Observação é obrigatório para este lançamento.');
-        }
-        
-        // O Supabase geralmente converte 'SetorNome' para 'setornome' também.
-        // Para garantir, vamos procurar de forma insensível a maiúsculas/minúsculas.
-        const setorGeral = App.state.cache.setores.find(s => s.setornome && s.setornome.toUpperCase() === 'PRODUÇÃO GERAL');
+                        if (!produto) {
+                            throw new Error('Produto não encontrado na lista carregada do Supabase!');
+                        }
 
-        const lancamento = {
-            Data: App.utils.getValue('#dataProducao'),
-            TurnoID: parseInt(App.utils.getValue('#turnoDetalhado'), 10),
-            SetorID: setorGeral ? setorGeral.setor_id : 1, // Usando setor_id (minúsculo)
-            
-            // ---- CORREÇÃO 3 AQUI ----
-            // Usando 'produto.produtoid' (minúsculo) em vez de 'produto.ProdutoID'
-            ProdutoID: produto.produtoid,
-            
-            Quantidade_Chapas: parseInt(App.utils.getValue('#quantidade'), 10),
-            Observacoes: observacaoParaCopiar
-        };
+                        // ---- CORREÇÃO 2 AQUI ----
+                        // Usando 'produto.cubagem_m3' (minúsculo) em vez de 'produto.Cubagem_m3'
+                        if (!produto.cubagem_m3 || produto.cubagem_m3 <= 0) {
+                            throw new Error('Produto sem dimensões (cubagem). Não é possível calcular m³.');
+                        }
 
-        if (!lancamento.ProdutoID || !lancamento.Quantidade_Chapas || !lancamento.TurnoID || !lancamento.Data || lancamento.Quantidade_Chapas <= 0) {
-            throw new Error('Por favor, preencha todos os campos obrigatórios corretamente.');
-        }
+                        const observacaoParaCopiar = App.utils.getValue('#obsProducao').trim();
+                        if (!observacaoParaCopiar) {
+                            throw new Error('O campo Observação é obrigatório para este lançamento.');
+                        }
 
-        const { data, error } = await supabaseClient
-            .from('Producao')
-            .insert([lancamento]);
+                        // O Supabase geralmente converte 'SetorNome' para 'setornome' também.
+                        // Para garantir, vamos procurar de forma insensível a maiúsculas/minúsculas.
+                        const setorGeral = App.state.cache.setores.find(s => s.setornome && s.setornome.toUpperCase() === 'PRODUÇÃO GERAL');
 
-        if (error) {
-            throw new Error(`Erro do Supabase: ${error.message}`);
-        }
+                        const lancamento = {
+                            Data: App.utils.getValue('#dataProducao'),
+                            TurnoID: parseInt(App.utils.getValue('#turnoDetalhado'), 10),
+                            SetorID: setorGeral ? setorGeral.setor_id : 1, // Usando setor_id (minúsculo)
 
-        App.ui.showNotification("Lançamento salvo com SUCESSO na nuvem!", 'success');
+                            // ---- CORREÇÃO 3 AQUI ----
+                            // Usando 'produto.produtoid' (minúsculo) em vez de 'produto.ProdutoID'
+                            ProdutoID: produto.produtoid,
 
-        if (observacaoParaCopiar && navigator.clipboard) {
-            try {
-                await navigator.clipboard.writeText(observacaoParaCopiar);
-                App.ui.showNotification('Observação copiada!');
-            } catch (err) {
-                console.error('Falha ao copiar a observação: ', err);
-            }
-        }
+                            Quantidade_Chapas: parseInt(App.utils.getValue('#quantidade'), 10),
+                            Observacoes: observacaoParaCopiar
+                        };
 
-        this.resetFormProducaoParcial();
-        App.utils.$('#obsProducao').value = '';
-        this.renderProducaoDoDia();
-        this.loadDashboard();
+                        if (!lancamento.ProdutoID || !lancamento.Quantidade_Chapas || !lancamento.TurnoID || !lancamento.Data || lancamento.Quantidade_Chapas <= 0) {
+                            throw new Error('Por favor, preencha todos os campos obrigatórios corretamente.');
+                        }
 
-    } catch (error) {
-        console.error('Erro ao registrar produção:', error);
-        App.ui.showNotification(error.message, 'error');
-    } finally {
-        App.ui.showLoading(false);
-    }
-},
-// ==================================================================
-// ==== FIM DA FUNÇÃO CORRIGIDA ====
-// ==================================================================
+                        const { data, error } = await supabaseClient
+                            .from('Producao')
+                            .insert([lancamento]);
+
+                        if (error) {
+                            throw new Error(`Erro do Supabase: ${error.message}`);
+                        }
+
+                        App.ui.showNotification("Lançamento salvo com SUCESSO na nuvem!", 'success');
+
+                        if (observacaoParaCopiar && navigator.clipboard) {
+                            try {
+                                await navigator.clipboard.writeText(observacaoParaCopiar);
+                                App.ui.showNotification('Observação copiada!');
+                            } catch (err) {
+                                console.error('Falha ao copiar a observação: ', err);
+                            }
+                        }
+
+                        this.resetFormProducaoParcial();
+                        App.utils.$('#obsProducao').value = '';
+                        this.renderProducaoDoDia();
+                        this.loadDashboard();
+
+                    } catch (error) {
+                        console.error('Erro ao registrar produção:', error);
+                        App.ui.showNotification(error.message, 'error');
+                    } finally {
+                        App.ui.showLoading(false);
+                    }
+                },
+                // ==================================================================
+                // ==== FIM DA FUNÇÃO CORRIGIDA ====
+                // ==================================================================
                 resetFormProducaoParcial() {
                     App.utils.$('#codigoInput').value = '';
                     App.utils.$('#quantidade').value = '';
@@ -4938,7 +4939,6 @@ async registrarProducao() {
                 App.utils.$('#descartesDiaTbody').addEventListener('keydown', App.logic.descarte.handleTableKeyDown.bind(App.logic.descarte));
                 App.utils.$('#dataRefPrensa').addEventListener('change', () => App.logic.prensa.setDataRef());
                 App.utils.$('#codigoPrensaInput').addEventListener('input', App.utils.debounce((e) => App.buscarProdutoPorCodigo(e.target.value, '#descricaoProdutoPrensaPreview'), 300));
-                App.utils.$('#btnConfirmarCargaPrensa').addEventListener('click', () => App.logic.prensa.confirmarCarga());
                 App.utils.$('#btnRegistrarPrensa').addEventListener('click', () => App.logic.prensa.registrar());
                 App.utils.$('#btnLimparPrensa').addEventListener('click', () => App.logic.prensa.limparForm());
                 App.utils.$('#codigoPrensaInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') App.utils.$('#quantidadePrensa').focus(); });
